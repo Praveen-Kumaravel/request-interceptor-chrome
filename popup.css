@@ -1,0 +1,10 @@
+.popup-wrapper {
+    min-width: 50rem;
+    padding: 2rem 3rem;
+}
+
+
+#redirect-configs-list {
+    max-height: 20rem;
+    overflow-y: auto;
+}

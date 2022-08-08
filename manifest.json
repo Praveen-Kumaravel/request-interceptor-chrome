@@ -4,17 +4,17 @@
     "version": "1.0",
     "manifest_version": 2,
     "permissions": [
+      "activeTab",
       "webRequest",
       "webRequestBlocking",
-      "*://localhost//",
-      "*://*.myfreshworks.dev//",
-      "*://*.freshpori.com//"
+      "storage",
+      "*://*.myfreshworks.dev//"
     ],
     "background": {
         "scripts": ["background.js"],
         "persistent": true
     },
-    "page_action": {
+    "browser_action": {
       "default_popup": "popup.html",
       "default_icon": {
         "16": "/images/get_started16.png",
