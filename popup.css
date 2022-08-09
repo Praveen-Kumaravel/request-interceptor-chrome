@@ -8,3 +8,13 @@
     max-height: 20rem;
     overflow-y: auto;
 }
+
+#message-container {
+    min-height: 2rem;
+    opacity: 0;
+    transition: opacity 0.5s ease-in;
+}
+
+#message-container.show {
+    opacity: 1;
+}

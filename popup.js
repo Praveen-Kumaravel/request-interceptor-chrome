@@ -55,11 +55,11 @@ function refreshUI() {
     
         Object.keys(REDIRECT_CONFIG).forEach(endpoint => {
             const listElementWrapper = createDomElement('div', 'row')
-            const endpointInputWrapper = createDomElement('div', 'col-8')
-            const endpointInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', value: endpoint})
+            const endpointInputWrapper = createDomElement('div', 'col-7')
+            const endpointInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', name: endpoint, value: endpoint})
             endpointInputWrapper.appendChild(endpointInput)
             const targetFileWrapper = createDomElement('div', 'col-4')
-            const targetFileInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', value: REDIRECT_CONFIG[endpoint]})
+            const targetFileInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', name: `file-${endpoint}`, value: REDIRECT_CONFIG[endpoint]})
             targetFileWrapper.appendChild(targetFileInput)
     
             listElementWrapper.appendChild(endpointInputWrapper)
@@ -70,6 +70,66 @@ function refreshUI() {
         redirectConfigList.appendChild(redirectItems)
       });
 }
+
+const messageContainer = document.getElementById('message-container')
+
+let messageTimer
+function showMessage(message, type = 'success') {
+    messageContainer.classList.add('show', `alert-${type}`)
+    console.log("Showing message toast", message)
+    messageContainer.innerHTML = message
+    messageTimer && clearTimeout(messageTimer)
+
+    messageTimer = setTimeout(() => {
+        messageContainer.innerHTML = ""
+        messageContainer.classList.remove('show')
+    }, 2000)
+}
+
+function updateConfigToBackground(newConfig) {
+    chrome.runtime.sendMessage({type: 'CONFIG_UPDATE', payload: newConfig}, function (response) {
+        const {type} = response
+        if (type === 'CONFIG_UPDATE') {
+            console.log("Update acknowledged by background", {response})
+            showMessage('Successfully updated mock file')
+        }
+    })
+}
+
+
+function handleUpdate (event) {
+    event.preventDefault()
+    const formData = new FormData(event.target)
+    const updatedConfig = {}
+    updatedConfig.HOSTNAME = formData.get('hostname')
+    const REDIRECT_CONFIG = {}
+    for(const formKey of formData.keys()) {
+        if (!formKey.includes('file-') && formKey !== 'hostname') {
+            REDIRECT_CONFIG[formKey] = formData.get(`file-${formKey}`)
+        }
+    }
+
+    updatedConfig.REDIRECT_CONFIG = REDIRECT_CONFIG
+
+    updateConfigToBackground(updatedConfig)
+
+}
+
+document.getElementById('config-form').addEventListener('submit', handleUpdate)
+
+
+function refreshMocks() {
+    chrome.runtime.sendMessage({type: 'REFRESH_MOCKS'}, function (response) {
+        const {type} = response
+
+        if (type === 'REFRESH_MOCKS') {
+            console.log('Refresh acknowledged by background', {response})
+            showMessage('Successfully refreshed mock file contents')
+        }
+    })
+}
+
+document.getElementById('refreshMocksBtn').addEventListener('click', refreshMocks)
 
 refreshUI()
 

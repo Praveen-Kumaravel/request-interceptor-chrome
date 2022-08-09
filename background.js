@@ -23,7 +23,7 @@ function readFile(path) {
 * Value: File path relative to extension root dir to send as response for source endpoint.
 * All files are parsed to json in redirected response and for that reason, only json file's paths are to be included as values.
 */
-const REDIRECT_CONFIG = {
+let REDIRECT_CONFIG = {
   'GET /crm/phone/numbers': 'sample.json'
 }
 
@@ -39,9 +39,33 @@ let HOSTNAME = 'https://demomicrm-org.myfreshworks.dev'
 let redirectContentsMap
 
 
-const _urls = []
-const formattedConfigs = []
+let _urls = []
+let formattedConfigs = []
 
+function getConfigFromStorage() {
+  return new Promise(resolve => {
+    chrome.storage.sync.get("config", ({ config }) => {
+      resolve(config)
+    })
+  })
+}
+
+async function refreshLocalVars (newConfig) {
+  if (newConfig) {
+    HOSTNAME = newConfig.HOSTNAME
+    REDIRECT_CONFIG = newConfig.REDIRECT_CONFIG
+  } else {
+    const config = await getConfigFromStorage()
+    console.log("Loaded config from storage", {config})
+    if (config) {
+      HOSTNAME = config.HOSTNAME
+      REDIRECT_CONFIG = config.REDIRECT_CONFIG
+    } else {
+      console.log("Using config hardcoded in code")
+    }
+  }
+  _urls = []
+  formattedConfigs = []
 Object.keys(REDIRECT_CONFIG).forEach(urlWithMethod => {
   const [method, url] = urlWithMethod.split(/\s+/)
 
@@ -50,9 +74,9 @@ Object.keys(REDIRECT_CONFIG).forEach(urlWithMethod => {
     method, url, targetFilePath: REDIRECT_CONFIG[urlWithMethod]
   })
 })
+}
 
-
-const refreshConfigs = async () => {
+const refreshFileContents = async () => {
   const redirectContents = await Promise.all(Object.values(REDIRECT_CONFIG).map(async filePath => {
     return {key: filePath, value: await readFile(filePath)}
   }))
@@ -62,7 +86,11 @@ const refreshConfigs = async () => {
 
     return mapped
   }, {})
+}
 
+const refreshConfigs = async (newConfig) => {
+  await refreshLocalVars(newConfig)
+  await refreshFileContents()
 
   console.log("Interceptor registered with config: ", {REDIRECT_CONFIG, _urls, formattedConfigs, redirectContentsMap})
 
@@ -70,7 +98,9 @@ const refreshConfigs = async () => {
   chrome.storage.sync.set({ config: {REDIRECT_CONFIG, HOSTNAME} });
 }
 
-chrome.runtime.onInstalled.addListener(refreshConfigs);
+chrome.runtime.onInstalled.addListener(() => {
+  refreshConfigs()
+});
 
 
 chrome.webRequest.onBeforeRequest.addListener(function (details) {
@@ -92,3 +122,22 @@ chrome.webRequest.onBeforeRequest.addListener(function (details) {
 },
   { urls: _urls },
   ['blocking'])
+
+
+
+chrome.runtime.onMessage.addListener(
+  function (request, sender, sendResponse) {
+    console.log("Message received", {request})
+    const {type, payload} = request
+
+    if (type === "CONFIG_UPDATE") {
+      refreshConfigs(payload)
+      sendResponse({type: 'CONFIG_UPDATE', message: "OK"})
+    }
+
+    if (type === "REFRESH_MOCKS") {
+      refreshConfigs()
+      sendResponse({type: 'REFRESH_MOCKS', message: "OK"})
+    }
+  }
+)
