@@ -22,6 +22,8 @@ function readFile(path) {
 * Key: Space separated keys with method name in upper case first, followed by relative URL of endpoint.
 * Value: File path relative to extension root dir to send as response for source endpoint.
 * All files are parsed to json in redirected response and for that reason, only json file's paths are to be included as values.
+* Updated as per the popup UI's changes.
+* Used as default value for first time after installation, after that, extension reads from chrome.storage
 */
 let REDIRECT_CONFIG = {
   'GET /crm/phone/numbers': 'sample.json'

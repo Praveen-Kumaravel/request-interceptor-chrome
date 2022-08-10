@@ -1,4 +1,3 @@
-
 /*
 * Helper function to create DOM elements at ease.
 */
@@ -19,6 +18,17 @@ function createDomElement(tag, className, innerText, additionalAttributes) {
     }
 
     return element
+}
+
+async function updateHostnameHelpText() {
+    const res = await fetch(chrome.runtime.getURL('manifest.json'))
+    const manifest = await res.json()
+    const {permissions} = manifest
+    const hostnameRegex = /.*\..*/
+    const hostPermissions = permissions.filter(permission => (permission.match(hostnameRegex)))
+    const helpText = `Must match pattern: ${hostPermissions.join(', ')}`
+
+    document.getElementById('hostnameHelp').innerHTML = helpText
 }
 
 /*
@@ -42,7 +52,7 @@ function refreshUI() {
 
         const headerWrapper = createDomElement('div', 'row')
 
-        const endpointTitleWrapper = createDomElement('div', 'col-8')
+        const endpointTitleWrapper = createDomElement('div', 'col-7')
         endpointTitleWrapper.appendChild(createDomElement('h5', 'text-center', 'API'))
         const targetFileTitleWrapper = createDomElement('div', 'col-4')
         targetFileTitleWrapper.appendChild(createDomElement('h5', 'text-center', 'File path'))
@@ -56,7 +66,7 @@ function refreshUI() {
         Object.keys(REDIRECT_CONFIG).forEach(endpoint => {
             const listElementWrapper = createDomElement('div', 'row')
             const endpointInputWrapper = createDomElement('div', 'col-7')
-            const endpointInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', name: endpoint, value: endpoint})
+            const endpointInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', disabled: true, name: endpoint, value: endpoint})
             endpointInputWrapper.appendChild(endpointInput)
             const targetFileWrapper = createDomElement('div', 'col-4')
             const targetFileInput = createDomElement('input', 'form-control', null, {type: 'text', placeholder: 'API Endpoint', name: `file-${endpoint}`, value: REDIRECT_CONFIG[endpoint]})
@@ -69,6 +79,10 @@ function refreshUI() {
         })
         redirectConfigList.appendChild(redirectItems)
       });
+
+
+    updateHostnameHelpText()
+    
 }
 
 const messageContainer = document.getElementById('message-container')
